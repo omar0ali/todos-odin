@@ -12,19 +12,19 @@ Task :: struct {
 }
 
 TaskCore :: struct {
-	tasks:       [dynamic]Task,
-	cleanup:     proc(tasks: ^[dynamic]Task),
-	generate_id: proc() -> string,
-	load_tasks:  proc(file_name: string) -> [dynamic]Task,
-	save_tasks:  proc(tasks: [dynamic]Task, file_name: string),
-	new_task:    proc(tasks: ^[dynamic]Task, title: string, desc: string),
+	file_name:        string,
+	tasks:            [dynamic]Task,
+	generate_id:      proc() -> string,
+	load_tasks:       proc(t_core: ^TaskCore),
+	save_and_cleanup: proc(t_core: ^TaskCore),
+	new_task:         proc(t_core: ^TaskCore, title: string, desc: string),
 }
 
-init :: proc() -> ^TaskCore {
+init :: proc(file_name: string) -> ^TaskCore {
 	core := new(TaskCore)
-	core.cleanup = cleanup
+	core.file_name = file_name
 	core.load_tasks = load_tasks
-	core.save_tasks = save_tasks
+	core.save_and_cleanup = save_tasks
 	core.new_task = new_task
 	return core
 }
@@ -67,8 +67,8 @@ cleanup :: proc(tasks: ^[dynamic]Task) {
 }
 
 @(private)
-new_file :: proc(file_name: string) -> []byte {
-	file, err := os.create(file_name)
+new_file :: proc(t_core: ^TaskCore) -> []byte {
+	file, err := os.create(t_core.file_name)
 	if err != nil {
 		panic(os.error_string(err))
 	}
@@ -81,22 +81,22 @@ new_file :: proc(file_name: string) -> []byte {
 }
 
 @(private)
-new_task :: proc(tasks: ^[dynamic]Task, title: string, desc: string) {
+new_task :: proc(t_core: ^TaskCore, title: string, desc: string) {
 	id := generate_id()
-	append(tasks, Task{strings.clone(id), strings.clone(title), strings.clone(desc)})
+	append(&t_core.tasks, Task{strings.clone(id), strings.clone(title), strings.clone(desc)})
 }
 
 @(private)
-load_tasks :: proc(file_name: string) -> [dynamic]Task {
+load_tasks :: proc(t_core: ^TaskCore) {
 	tasks := make([dynamic]Task, context.allocator)
 
 	err: os.Error
 	file: []byte
 
 
-	file, err = os.read_entire_file(file_name, context.allocator)
+	file, err = os.read_entire_file(t_core.file_name, context.allocator)
 	if err != nil {
-		file = new_file(file_name)
+		file = new_file(t_core)
 	}
 
 	defer delete(file)
@@ -121,15 +121,16 @@ load_tasks :: proc(file_name: string) -> [dynamic]Task {
 
 		append(&tasks, Task{id, title, desc})
 	}
-	return tasks
+	t_core.tasks = tasks
 }
 
 @(private)
-save_tasks :: proc(tasks: [dynamic]Task, file_name: string) {
-	lines := make([]string, len(tasks))
+save_tasks :: proc(t_core: ^TaskCore) {
+	lines := make([]string, len(t_core.tasks))
+	defer cleanup(&t_core.tasks)
 	defer delete(lines) // clean lines
 
-	for t, i in tasks {
+	for t, i in t_core.tasks {
 		line := fmt.aprintf("%s, %s, %s", t.id, t.title, t.desc)
 		lines[i] = line
 	}
@@ -138,7 +139,7 @@ save_tasks :: proc(tasks: [dynamic]Task, file_name: string) {
 	file_content := strings.join(lines, "\n")
 	defer delete(file_content, context.allocator)
 
-	err := os.write_entire_file(file_name, string(file_content))
+	err := os.write_entire_file(t_core.file_name, string(file_content))
 	if err != nil {
 		fmt.println(err)
 	}

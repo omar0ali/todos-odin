@@ -9,22 +9,21 @@ DEBUG :: true
 
 // --------------------------- CLI COMMANDS
 add :: proc(file_name: string, title: string, desc: string) {
-	t := task.init()
+	t := task.init(file_name)
+	defer t.save_and_cleanup(t) // save and cleanup
 
-	defer t.cleanup(&t.tasks) // second to cleanup
-	defer t.save_tasks(t.tasks, file_name) // first save
-
-	t.tasks = t.load_tasks(file_name)
+	t.load_tasks(t)
 
 	if DEBUG do fmt.println("DEBUG:", t.tasks) // show current tasks
 
-	t.new_task(&t.tasks, title, desc)
+	t.new_task(t, title, desc)
 }
 // ---------------------------
 
 /*
   ["path", "--file", "/data.txt", "--title", "some new title", "--desc", "some new desc"] 
 */
+
 main :: proc() {
 	args := os.args
 	if DEBUG do fmt.println("DEBUG: ", args)
