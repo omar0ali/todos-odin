@@ -67,8 +67,8 @@ cleanup :: proc(tasks: ^[dynamic]Task) {
 	delete(tasks^)
 }
 
-new_file :: proc() -> []byte {
-	file, err := os.create("data.txt")
+new_file :: proc(file_name: string) -> []byte {
+	file, err := os.create(file_name)
 	if err != nil {
 		panic(os.error_string(err))
 	}
@@ -94,7 +94,7 @@ load_tasks :: proc(file_name: string) -> [dynamic]Task {
 
 	file, err = os.read_entire_file(file_name, context.allocator)
 	if err != nil {
-		file = new_file()
+		file = new_file(file_name)
 	}
 
 	defer delete(file)
@@ -145,11 +145,12 @@ save_tasks :: proc(tasks: [dynamic]Task, file_name: string) {
 // CLI
 add :: proc(file_name: string, title: string, desc: string) {
 	core := new_task_core()
-	defer core.cleanup(&core.tasks) // second to cleanup
-	defer core.save_tasks(core.tasks, "data.txt") // first save
 
-	core.load_tasks("data.txt")
-	core.new_task(&core.tasks, "MyNewTitle", "Desc")
+	defer core.cleanup(&core.tasks) // second to cleanup
+	defer core.save_tasks(core.tasks, file_name) // first save
+
+	core.load_tasks(file_name)
+	core.new_task(&core.tasks, title, desc)
 }
 // ---------------------------
 
