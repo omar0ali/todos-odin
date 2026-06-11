@@ -11,7 +11,7 @@ Task :: struct {
 	desc:  string,
 }
 
-Todos :: struct {
+TaskCore :: struct {
 	tasks:       [dynamic]Task,
 	cleanup:     proc(tasks: ^[dynamic]Task),
 	generate_id: proc() -> string,
@@ -20,8 +20,8 @@ Todos :: struct {
 	new_task:    proc(tasks: ^[dynamic]Task, title: string, desc: string),
 }
 
-init :: proc() -> ^Todos {
-	core := new(Todos)
+init :: proc() -> ^TaskCore {
+	core := new(TaskCore)
 	core.cleanup = cleanup
 	core.load_tasks = load_tasks
 	core.save_tasks = save_tasks

@@ -14,7 +14,10 @@ add :: proc(file_name: string, title: string, desc: string) {
 	defer t.cleanup(&t.tasks) // second to cleanup
 	defer t.save_tasks(t.tasks, file_name) // first save
 
-	t.load_tasks(file_name)
+	t.tasks = t.load_tasks(file_name)
+
+	if DEBUG do fmt.println("DEBUG:", t.tasks) // show current tasks
+
 	t.new_task(&t.tasks, title, desc)
 }
 // ---------------------------
