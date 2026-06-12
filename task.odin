@@ -1,10 +1,10 @@
-package task
+package main
 import "core:fmt"
 import "core:math/rand"
 import "core:os"
 import "core:strings"
 
-@(private)
+@(private = "file")
 Task :: struct {
 	id:    string,
 	title: string,
@@ -29,7 +29,7 @@ init :: proc(file_name: string) -> ^TaskCore {
 	return core
 }
 
-@(private)
+@(private = "file")
 generate_id :: proc() -> string {
 	bytes: [16]u8
 
@@ -56,7 +56,7 @@ generate_id :: proc() -> string {
 	)
 }
 
-@(private)
+@(private = "file")
 cleanup :: proc(tasks: ^[dynamic]Task) {
 	for v in tasks^ {
 		delete(v.id) // using aprint
@@ -66,7 +66,7 @@ cleanup :: proc(tasks: ^[dynamic]Task) {
 	delete(tasks^)
 }
 
-@(private)
+@(private = "file")
 new_file :: proc(t_core: ^TaskCore) -> []byte {
 	file, err := os.create(t_core.file_name)
 	if err != nil {
@@ -80,13 +80,13 @@ new_file :: proc(t_core: ^TaskCore) -> []byte {
 	return data
 }
 
-@(private)
+@(private = "file")
 new_task :: proc(t_core: ^TaskCore, title: string, desc: string) {
 	id := generate_id()
 	append(&t_core.tasks, Task{strings.clone(id), strings.clone(title), strings.clone(desc)})
 }
 
-@(private)
+@(private = "file")
 load_tasks :: proc(t_core: ^TaskCore) {
 	tasks := make([dynamic]Task, context.allocator)
 
@@ -124,7 +124,7 @@ load_tasks :: proc(t_core: ^TaskCore) {
 	t_core.tasks = tasks
 }
 
-@(private)
+@(private = "file")
 save_tasks :: proc(t_core: ^TaskCore) {
 	lines := make([]string, len(t_core.tasks))
 	defer cleanup(&t_core.tasks)

@@ -2,14 +2,13 @@ package main
 
 import "core:fmt"
 import "core:os"
-import "task"
 
 DEBUG :: true
 
 
 // --------------------------- CLI COMMANDS
 add :: proc(file_name: string, title: string, desc: string) {
-	t := task.init(file_name)
+	t := init(file_name)
 	defer t.save_and_cleanup(t) // save and cleanup
 
 	t.load_tasks(t)
@@ -21,17 +20,48 @@ add :: proc(file_name: string, title: string, desc: string) {
 // ---------------------------
 
 /*
-  ["path", "--file", "/data.txt", "--title", "some new title", "--desc", "some new desc"] 
+  ["path", "cmd" ,"--file", "/data.txt", "--title", "some new title", "--desc", "some new desc"] 
 */
 
 main :: proc() {
 	args := os.args
 	if DEBUG do fmt.println("DEBUG: ", args)
-	add("data.txt", "title", "desc")
-	// if len(args) < 8 {
-	// 	fmt.println(
-	// 		"usage: \nadd --file \"file_path\" --title \"some title\" --desc \"some description\"",
-	// 		"\ndelete --file \"file_path\" --id \"some id\"",
-	// 	)
-	// }
+
+
+	if len(args) < 2 {
+		fmt.println("usage: tasks <command>")
+		return
+	}
+
+	cmd := args[1]
+
+	switch cmd {
+	case "add":
+		if len(args) != 8 {
+			fmt.println(
+				"usage: \ntasks add --file \"file_path\" --title \"some title\" --desc \"some description\"",
+			)
+			return
+		}
+
+		file, title, desc := "", "", ""
+		if args[2] == "--file" || args[2] == "-f" do file = args[3]
+		else {
+			fmt.println("expected --file or -f")
+			return
+		}
+		if args[4] == "--title" || args[4] == "-t" do title = args[5]
+		else {
+			fmt.println("expected --title or -t")
+			return
+		}
+		if args[6] == "--desc" || args[6] == "-d" do desc = args[7]
+		else {
+			fmt.println("expected --desc or -d")
+			return
+		}
+
+		add(file, title, desc) // add
+	}
+
 }
