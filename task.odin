@@ -4,6 +4,11 @@ import "core:math/rand"
 import "core:os"
 import "core:strings"
 
+Error :: enum {
+	FileNotFound,
+	InvalidInput,
+}
+
 @(private = "file")
 Task :: struct {
 	id:    string,
@@ -15,8 +20,9 @@ TaskCore :: struct {
 	file_name:        string,
 	tasks:            [dynamic]Task,
 	generate_id:      proc() -> string,
-	load_tasks:       proc(t_core: ^TaskCore),
+	load_tasks:       proc(t_core: ^TaskCore, create_file: bool) -> Error,
 	save_and_cleanup: proc(t_core: ^TaskCore),
+	cleanup:          proc(tasks: ^[dynamic]Task),
 	new_task:         proc(t_core: ^TaskCore, title: string, desc: string),
 }
 
@@ -25,6 +31,7 @@ init :: proc(file_name: string) -> ^TaskCore {
 	core.file_name = file_name
 	core.load_tasks = load_tasks
 	core.save_and_cleanup = save_tasks
+	core.cleanup = cleanup
 	core.new_task = new_task
 	return core
 }
@@ -87,7 +94,7 @@ new_task :: proc(t_core: ^TaskCore, title: string, desc: string) {
 }
 
 @(private = "file")
-load_tasks :: proc(t_core: ^TaskCore) {
+load_tasks :: proc(t_core: ^TaskCore, create_file: bool) -> Error {
 	tasks := make([dynamic]Task, context.allocator)
 
 	err: os.Error
@@ -96,7 +103,9 @@ load_tasks :: proc(t_core: ^TaskCore) {
 
 	file, err = os.read_entire_file(t_core.file_name, context.allocator)
 	if err != nil {
-		file = new_file(t_core)
+		if create_file do file = new_file(t_core)
+		fmt.println(err, " file does not exist")
+		return .FileNotFound
 	}
 
 	defer delete(file)
@@ -122,6 +131,7 @@ load_tasks :: proc(t_core: ^TaskCore) {
 		append(&tasks, Task{id, title, desc})
 	}
 	t_core.tasks = tasks
+	return nil
 }
 
 @(private = "file")

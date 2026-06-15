@@ -3,7 +3,7 @@ package main
 import "core:fmt"
 import "core:os"
 
-DEBUG :: true
+DEBUG :: false
 
 
 // --------------------------- CLI COMMANDS
@@ -11,11 +11,25 @@ add :: proc(file_name: string, title: string, desc: string) {
 	t := init(file_name)
 	defer t.save_and_cleanup(t) // save and cleanup
 
-	t.load_tasks(t)
+	___ := t.load_tasks(t, true) // ignore error: just create a newy file
 
 	if DEBUG do fmt.println("DEBUG:", t.tasks) // show current tasks
 
 	t.new_task(t, title, desc)
+}
+// ---------------------------
+list :: proc(file_name: string) {
+	t := init(file_name)
+	defer t.cleanup(&t.tasks) // cleanup
+
+	err := t.load_tasks(t, false)
+	if err != nil {
+		fmt.println(err)
+	}
+
+	for item, index in t.tasks {
+		fmt.printf("%d) [%s] - %s \t%s\n", index, item.id, item.title, item.desc)
+	}
 }
 // ---------------------------
 
@@ -29,7 +43,7 @@ main :: proc() {
 
 
 	if len(args) < 2 {
-		fmt.println("usage: tasks <command>")
+		fmt.println("usage:\n\ttasks <command>\ncommands:\n\tadd\n\tls")
 		return
 	}
 
@@ -39,7 +53,7 @@ main :: proc() {
 	case "add":
 		if len(args) != 8 {
 			fmt.println(
-				"usage: \ntasks add --file \"file_path\" --title \"some title\" --desc \"some description\"",
+				"usage:\n\ttasks add --file \"file_path\" --title \"some title\" --desc \"some description\"",
 			)
 			return
 		}
@@ -62,6 +76,22 @@ main :: proc() {
 		}
 
 		add(file, title, desc) // add
+	case "ls":
+		fallthrough
+	case "list":
+		if len(args) != 4 {
+			fmt.println("usage:\n\ttasks list --file \"file_path\"")
+			return
+		}
+
+		file := ""
+		if args[2] == "--file" || args[2] == "-f" do file = args[3]
+		else {
+			fmt.println("expected --file or -f")
+			return
+		}
+
+		list(file)
 	}
 
 }
