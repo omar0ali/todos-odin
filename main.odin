@@ -24,11 +24,33 @@ list :: proc(file_name: string) {
 
 	err := t.load_tasks(t, false)
 	if err != nil {
-		fmt.println(err)
+		return
 	}
 
 	for item, index in t.tasks {
 		fmt.printf("%d) [%s] - %s \t%s\n", index, item.id, item.title, item.desc)
+	}
+}
+// ---------------------------
+delete_task_file :: proc(file_name: string) {
+	t := init(file_name)
+	defer t.cleanup(&t.tasks)
+
+	{ 	// {} so i can isolate the err variable
+		// check if the file can be loaded to TaskCore
+		err := t.load_tasks(t, false)
+		if err != nil {
+			fmt.println("deleting does not work")
+			return
+		}
+	}
+
+	{
+		// delete file
+		err := os.remove(file_name)
+		if err != nil {
+			fmt.println("ER: ", err)
+		}
 	}
 }
 // ---------------------------
@@ -92,6 +114,14 @@ main :: proc() {
 		}
 
 		list(file)
+	case "deletefile":
+		fallthrough
+	case "df":
+		if len(args) != 3 {
+			fmt.println("usage:\n\ttasks deletefile file_path")
+			return
+		}
+		delete_task_file(args[2])
 	}
 
 }

@@ -104,7 +104,6 @@ load_tasks :: proc(t_core: ^TaskCore, create_file: bool) -> Error {
 	file, err = os.read_entire_file(t_core.file_name, context.allocator)
 	if err != nil {
 		if create_file do file = new_file(t_core)
-		fmt.println(err, " file does not exist")
 		return .FileNotFound
 	}
 
