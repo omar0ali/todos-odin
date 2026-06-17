@@ -2,6 +2,7 @@ package main
 
 import "core:fmt"
 import "core:os"
+import "core:strings"
 
 DEBUG :: false
 
@@ -11,7 +12,11 @@ add :: proc(file_name: string, title: string, desc: string) {
 	t := init(file_name)
 	defer t.save_and_cleanup(t) // save and cleanup
 
-	___ := t.load_tasks(t, true) // ignore error: just create a newy file
+	err := t.load_tasks(t, true)
+	if err != nil {
+		fmt.println(err)
+		return
+	}
 
 	if DEBUG do fmt.println("DEBUG:", t.tasks) // show current tasks
 
@@ -55,6 +60,29 @@ delete_task_file :: proc(file_name: string) {
 }
 // ---------------------------
 
+remove_task :: proc(file_name, id: string) {
+	t := init(file_name)
+	defer t.save_and_cleanup(t) // cleanup
+
+	err := t.load_tasks(t, false)
+	if err != nil {
+		fmt.println(err)
+		return
+	}
+
+	for task, i in t.tasks {
+		if strings.contains(task.id, id) {
+			unordered_remove(&t.tasks, i)
+			fmt.printf("deleted: %s\t %s \t %s", task.id, task.title, task.desc)
+			break
+		}
+	}
+
+	fmt.println("couldn't find a task to delete")
+}
+
+// ---------------------------
+
 /*
   ["path", "cmd" ,"--file", "/data.txt", "--title", "some new title", "--desc", "some new desc"] 
 */
@@ -65,7 +93,7 @@ main :: proc() {
 
 
 	if len(args) < 2 {
-		fmt.println("usage:\n\ttasks <command>\ncommands:\n\tadd\n\tls")
+		fmt.println("usage:\n\ttasks <command>\ncommands:\n\tadd\n\tls\n\tdeletefile")
 		return
 	}
 
@@ -106,7 +134,7 @@ main :: proc() {
 			return
 		}
 
-		file := ""
+		file: string
 		if args[2] == "--file" || args[2] == "-f" do file = args[3]
 		else {
 			fmt.println("expected --file or -f")
@@ -122,6 +150,25 @@ main :: proc() {
 			return
 		}
 		delete_task_file(args[2])
+	case "rm":
+		id: string
+		file: string
+		if len(args) != 6 {
+			fmt.println("usage:\n\ttasks rm --file \"file_path\" --id \"task_id\"")
+			return
+		}
+		if args[2] == "--file" || args[2] == "-f" do file = args[3]
+		else {
+			fmt.println("expected --file or -f")
+			return
+		}
+		if args[4] == "--id" || args[4] == "-i" do id = args[5]
+		else {
+			fmt.println("expected --id or -i")
+			return
+		}
+
+		remove_task(file, id)
 	}
 
 }
