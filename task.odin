@@ -19,7 +19,6 @@ Task :: struct {
 TaskCore :: struct {
 	file_name:        string,
 	tasks:            [dynamic]Task,
-	generate_id:      proc() -> string,
 	load_tasks:       proc(t_core: ^TaskCore, create_file: bool) -> Error,
 	save_and_cleanup: proc(t_core: ^TaskCore),
 	cleanup:          proc(tasks: ^[dynamic]Task),
@@ -89,7 +88,7 @@ new_file :: proc(t_core: ^TaskCore) -> []byte {
 
 @(private = "file")
 new_task :: proc(t_core: ^TaskCore, title: string, desc: string) {
-	id := generate_id()
+	id := generate_id() // creating a new id
 	append(&t_core.tasks, Task{strings.clone(id), strings.clone(title), strings.clone(desc)})
 }
 
@@ -103,7 +102,10 @@ load_tasks :: proc(t_core: ^TaskCore, create_file: bool) -> Error {
 
 	file, err = os.read_entire_file(t_core.file_name, context.allocator)
 	if err != nil {
-		if create_file do file = new_file(t_core)
+		if create_file {
+			file = new_file(t_core)
+			return nil
+		}
 		return .FileNotFound
 	}
 
@@ -121,9 +123,8 @@ load_tasks :: proc(t_core: ^TaskCore, create_file: bool) -> Error {
 
 		if len(parts) < 3 do panic(line)
 
-		id := generate_id()
-
 		// need to clean up clones
+		id := strings.clone(strings.trim_space(parts[0])) // saved id
 		title := strings.clone(strings.trim_space(parts[1]))
 		desc := strings.clone(strings.trim_space(parts[2]))
 
