@@ -4,9 +4,6 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-DEBUG :: false
-
-
 // --------------------------- CLI COMMANDS
 add :: proc(file_name: string, title: string, desc: string) {
 	t := init(file_name)
@@ -18,7 +15,6 @@ add :: proc(file_name: string, title: string, desc: string) {
 		return
 	}
 
-	if DEBUG do fmt.println("DEBUG:", t.tasks) // show current tasks
 
 	if err := t.new_task(t, title, desc); err != nil {
 		fmt.println(err)
@@ -98,9 +94,6 @@ remove_task :: proc(file_name, id: string) {
 
 main :: proc() {
 	args := os.args
-	if DEBUG do fmt.println("DEBUG: ", args)
-
-
 	if len(args) < 2 {
 		fmt.println("usage:\n\ttasks <command>\ncommands:\n\tadd\n\tls\n\tdeletefile")
 		return
