@@ -3,10 +3,12 @@ import "core:fmt"
 import "core:math/rand"
 import "core:os"
 import "core:strings"
+import "core:time"
 
 Error :: enum {
 	FileNotFound,
 	InvalidInput,
+	InvalidTime,
 }
 
 @(private = "file")
@@ -14,6 +16,7 @@ Task :: struct {
 	id:    string,
 	title: string,
 	desc:  string,
+	date:  string,
 }
 
 TaskCore :: struct {
@@ -22,7 +25,7 @@ TaskCore :: struct {
 	load_tasks:       proc(t_core: ^TaskCore, create_file: bool) -> Error,
 	save_and_cleanup: proc(t_core: ^TaskCore),
 	cleanup:          proc(tasks: ^[dynamic]Task),
-	new_task:         proc(t_core: ^TaskCore, title: string, desc: string),
+	new_task:         proc(t_core: ^TaskCore, title: string, desc: string) -> Error,
 }
 
 init :: proc(file_name: string) -> ^TaskCore {
@@ -68,6 +71,7 @@ cleanup :: proc(tasks: ^[dynamic]Task) {
 		delete(v.id) // using aprint
 		delete(v.title) // clone
 		delete(v.desc) // clone
+		delete(v.date)
 	}
 	delete(tasks^)
 }
@@ -87,9 +91,43 @@ new_file :: proc(t_core: ^TaskCore) -> []byte {
 }
 
 @(private = "file")
-new_task :: proc(t_core: ^TaskCore, title: string, desc: string) {
+new_task :: proc(t_core: ^TaskCore, title: string, desc: string) -> Error {
 	id := generate_id() // creating a new id
-	append(&t_core.tasks, Task{strings.clone(id), strings.clone(title), strings.clone(desc)})
+
+	now, ok := time.time_to_datetime(time.now())
+	if !ok {
+		return .InvalidTime
+	}
+
+	hour_12 := now.hour % 12
+	if hour_12 == 0 {
+		hour_12 = 12
+	}
+
+	ampm := "AM"
+	if now.hour >= 12 {
+		ampm = "PM"
+	}
+
+	date := fmt.tprintf(
+		"%02d/%02d/%04d %d:%02d %s",
+		now.day,
+		int(now.month),
+		now.year,
+		hour_12,
+		now.minute,
+		ampm,
+	)
+
+	new_task_created := Task {
+		strings.clone(id),
+		strings.clone(title),
+		strings.clone(desc),
+		strings.clone(date),
+	}
+
+	append(&t_core.tasks, new_task_created)
+	return nil
 }
 
 @(private = "file")
@@ -121,14 +159,15 @@ load_tasks :: proc(t_core: ^TaskCore, create_file: bool) -> Error {
 
 		defer delete(parts)
 
-		if len(parts) < 3 do panic(line)
+		if len(parts) < 4 do panic(line)
 
 		// need to clean up clones
 		id := strings.clone(strings.trim_space(parts[0])) // saved id
 		title := strings.clone(strings.trim_space(parts[1]))
 		desc := strings.clone(strings.trim_space(parts[2]))
+		date := strings.clone(strings.trim_space(parts[3]))
 
-		append(&tasks, Task{id, title, desc})
+		append(&tasks, Task{id, title, desc, date})
 	}
 	t_core.tasks = tasks
 	return nil
@@ -141,7 +180,7 @@ save_tasks :: proc(t_core: ^TaskCore) {
 	defer delete(lines) // clean lines
 
 	for t, i in t_core.tasks {
-		line := fmt.aprintf("%s, %s, %s", t.id, t.title, t.desc)
+		line := fmt.aprintf("%s, %s, %s, %s", t.id, t.title, t.desc, t.date)
 		lines[i] = line
 	}
 	defer for line in lines do delete(line) // clean aprint line

@@ -20,7 +20,9 @@ add :: proc(file_name: string, title: string, desc: string) {
 
 	if DEBUG do fmt.println("DEBUG:", t.tasks) // show current tasks
 
-	t.new_task(t, title, desc)
+	if err := t.new_task(t, title, desc); err != nil {
+		fmt.println(err)
+	}
 }
 // ---------------------------
 list :: proc(file_name: string) {
@@ -33,7 +35,14 @@ list :: proc(file_name: string) {
 	}
 
 	for item, index in t.tasks {
-		fmt.printf("%d) [%s] - %s \t%s\n", index, item.id, item.title, item.desc)
+		fmt.printf(
+			"%d) [%s] - Title: %s \n\tDescription: %s\n\tCreated: %s\n",
+			index,
+			item.id,
+			item.title,
+			item.desc,
+			item.date,
+		)
 	}
 }
 // ---------------------------
@@ -73,8 +82,8 @@ remove_task :: proc(file_name, id: string) {
 	for task, i in t.tasks {
 		if strings.contains(task.id, id) {
 			unordered_remove(&t.tasks, i)
-			fmt.printf("deleted: %s\t %s \t %s", task.id, task.title, task.desc)
-			break
+			fmt.printf("deleted: \n\t%s\t%s \n\t %s", task.id, task.title, task.date)
+			return
 		}
 	}
 
